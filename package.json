@@ -1,9 +1,12 @@
 {
   "name": "arvore-genealogica",
   "version": "1.0.0",
-  "description": "Aplicação de Árvore Genealógica com UI de Revisão",
+  "description": "Plataforma de Exploracao Genealogica com API Read-Only",
   "private": true,
   "dependencies": {
+    "better-sqlite3": "^11.9.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
@@ -13,14 +16,21 @@
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^14.0.0",
     "@testing-library/user-event": "^14.4.3",
+    "concurrently": "^9.1.2",
     "eslint": "^8.45.0",
     "eslint-plugin-react": "^7.33.0",
-    "eslint-plugin-react-hooks": "^4.6.0"
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "jest": "^29.7.0",
+    "supertest": "^7.1.1"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "concurrently -k \"npm run start:api\" \"npm run start:web\"",
+    "start:api": "node server/index.js",
+    "start:web": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test --watchAll=false",
+    "test": "npm run test:server && npm run test:client",
+    "test:client": "react-scripts test --watchAll=false",
+    "test:server": "jest --config jest.server.config.cjs --runInBand",
     "lint": "eslint src --ext .js,.jsx"
   },
   "eslintConfig": {
