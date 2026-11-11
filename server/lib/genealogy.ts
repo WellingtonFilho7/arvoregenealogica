@@ -1,3 +1,5 @@
+export {};
+
 function toPersonNode(person, depth) {
   if (!person) {
     return null;

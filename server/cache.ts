@@ -1,9 +1,13 @@
+export {};
+
 class TTLCache {
+  storage: Map<string, { value: unknown; expiresAt: number }>;
+
   constructor() {
     this.storage = new Map();
   }
 
-  get(key) {
+  get(key: string) {
     const item = this.storage.get(key);
     if (!item) {
       return undefined;
@@ -17,7 +21,7 @@ class TTLCache {
     return item.value;
   }
 
-  set(key, value, ttlMs) {
+  set(key: string, value: unknown, ttlMs: number) {
     this.storage.set(key, {
       value,
       expiresAt: Date.now() + ttlMs,
@@ -25,7 +29,7 @@ class TTLCache {
     return value;
   }
 
-  getOrSet(key, ttlMs, resolver) {
+  getOrSet(key: string, ttlMs: number, resolver: () => unknown) {
     const cached = this.get(key);
     if (cached !== undefined) {
       return cached;

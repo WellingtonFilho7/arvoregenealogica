@@ -1,3 +1,5 @@
+export {};
+
 const { createDb } = require("./db");
 const { TTLCache } = require("./cache");
 const { GenealogyRepository } = require("./repository");

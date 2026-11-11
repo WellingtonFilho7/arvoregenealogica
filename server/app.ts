@@ -1,3 +1,5 @@
+export {};
+
 const express = require("express");
 const cors = require("cors");
 
@@ -13,6 +15,14 @@ function asPersonId(value) {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
     return null;
+  }
+  return parsed;
+}
+
+function asPositiveInt(value, fallback) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return fallback;
   }
   return parsed;
 }
@@ -43,6 +53,19 @@ function createApp({ service }) {
 
     const result = service.searchPeople(query);
     return res.json(normalizeResult(result));
+  });
+
+  app.get("/api/v2/search", (req, res) => {
+    const query = String(req.query.q || "").trim();
+    if (!query) {
+      return res.status(400).json({
+        data: [],
+        meta: {},
+        warnings: ["Query parameter 'q' is required"],
+      });
+    }
+
+    return res.json(normalizeResult(service.searchPeopleV2(query)));
   });
 
   app.get("/api/person/:id/summary", (req, res) => {
@@ -163,6 +186,123 @@ function createApp({ service }) {
     }
     const maxDepth = Number(req.query.maxDepth) || 20;
     return res.json(normalizeResult(service.getStory(personId, { maxDepth })));
+  });
+
+  app.get("/api/person/:id/notable-ancestors", (req, res) => {
+    const personId = asPersonId(req.params.id);
+    if (!personId) {
+      return res.status(400).json({
+        data: [],
+        meta: {},
+        warnings: ["Invalid person id"],
+      });
+    }
+    const maxDepth = Number(req.query.maxDepth) || 20;
+    const limit = Number(req.query.limit) || 8;
+    return res.json(
+      normalizeResult(service.getNotableAncestors(personId, { maxDepth, limit }))
+    );
+  });
+
+  app.get("/api/v2/person/:id/experience", (req, res) => {
+    const personId = asPersonId(req.params.id);
+    if (!personId) {
+      return res.status(400).json({
+        data: null,
+        meta: {},
+        warnings: ["Invalid person id"],
+      });
+    }
+    const maxDepth = asPositiveInt(req.query.maxDepth, 20);
+    return res.json(normalizeResult(service.getV2Experience(personId, { maxDepth })));
+  });
+
+  app.get("/api/v2/person/:id/claims", (req, res) => {
+    const personId = asPersonId(req.params.id);
+    if (!personId) {
+      return res.status(400).json({
+        data: [],
+        meta: {},
+        warnings: ["Invalid person id"],
+      });
+    }
+    const maxDepth = asPositiveInt(req.query.maxDepth, 20);
+    const page = asPositiveInt(req.query.page, 1);
+    const pageSize = asPositiveInt(req.query.pageSize, 10);
+    return res.json(
+      normalizeResult(service.getV2Claims(personId, { maxDepth, page, pageSize }))
+    );
+  });
+
+  app.get("/api/v2/person/:id/evidence/:claimId", (req, res) => {
+    const personId = asPersonId(req.params.id);
+    if (!personId) {
+      return res.status(400).json({
+        data: null,
+        meta: {},
+        warnings: ["Invalid person id"],
+      });
+    }
+    const claimId = String(req.params.claimId || "").trim();
+    if (!claimId) {
+      return res.status(400).json({
+        data: null,
+        meta: {},
+        warnings: ["Invalid claim id"],
+      });
+    }
+    const maxDepth = asPositiveInt(req.query.maxDepth, 20);
+    return res.json(
+      normalizeResult(service.getV2Evidence(personId, claimId, { maxDepth }))
+    );
+  });
+
+  app.get("/api/v2/person/:id/map", (req, res) => {
+    const personId = asPersonId(req.params.id);
+    if (!personId) {
+      return res.status(400).json({
+        data: { points: [], routes: [] },
+        meta: {},
+        warnings: ["Invalid person id"],
+      });
+    }
+    const maxDepth = asPositiveInt(req.query.maxDepth, 20);
+    const fromYear = req.query.fromYear ? Number(req.query.fromYear) : null;
+    const toYear = req.query.toYear ? Number(req.query.toYear) : null;
+    return res.json(
+      normalizeResult(service.getV2Map(personId, { maxDepth, fromYear, toYear }))
+    );
+  });
+
+  app.get("/api/v2/person/:id/network", (req, res) => {
+    const personId = asPersonId(req.params.id);
+    if (!personId) {
+      return res.status(400).json({
+        data: { nodes: [], edges: [], highlights: [] },
+        meta: {},
+        warnings: ["Invalid person id"],
+      });
+    }
+    const depth = asPositiveInt(req.query.depth, 3);
+    const maxNodesPerDepth = asPositiveInt(req.query.maxNodesPerDepth, 8);
+    return res.json(
+      normalizeResult(service.getV2Network(personId, { depth, maxNodesPerDepth }))
+    );
+  });
+
+  app.get("/api/v2/person/:id/documentary", (req, res) => {
+    const personId = asPersonId(req.params.id);
+    if (!personId) {
+      return res.status(400).json({
+        data: null,
+        meta: {},
+        warnings: ["Invalid person id"],
+      });
+    }
+    const maxDepth = asPositiveInt(req.query.maxDepth, 20);
+    return res.json(
+      normalizeResult(service.getV2Documentary(personId, { maxDepth }))
+    );
   });
 
   app.use((error, _req, res, _next) => {

@@ -1,3 +1,5 @@
+export {};
+
 function toYear(value) {
   const year = Number(value);
   if (!year || Number.isNaN(year)) {
@@ -20,6 +22,8 @@ function toCoordinate(value) {
 }
 
 class GenealogyRepository {
+  db: any;
+
   constructor(db) {
     this.db = db;
   }
@@ -40,16 +44,31 @@ class GenealogyRepository {
         n.Given AS given,
         n.Surname AS surname,
         n.BirthYear AS birthYear,
-        n.DeathYear AS deathYear
+        n.DeathYear AS deathYear,
+        COALESCE(lineage.parentCount, 0) AS parentCount
       FROM PersonTable p
       LEFT JOIN NameTable n
         ON n.OwnerID = p.PersonID
        AND n.IsPrimary = 1
+      LEFT JOIN (
+        SELECT
+          c.ChildID AS personId,
+          SUM(
+            (CASE WHEN f.FatherID > 0 THEN 1 ELSE 0 END) +
+            (CASE WHEN f.MotherID > 0 THEN 1 ELSE 0 END)
+          ) AS parentCount
+        FROM ChildTable c
+        JOIN FamilyTable f ON f.FamilyID = c.FamilyID
+        WHERE c.ChildID > 0
+        GROUP BY c.ChildID
+      ) lineage ON lineage.personId = p.PersonID
       WHERE
         (COALESCE(n.Given, '') || ' ' || COALESCE(n.Surname, '')) COLLATE NOCASE LIKE @q
         OR COALESCE(n.Given, '') COLLATE NOCASE LIKE @q
         OR COALESCE(n.Surname, '') COLLATE NOCASE LIKE @q
       ORDER BY
+        CASE WHEN COALESCE(lineage.parentCount, 0) > 0 THEN 0 ELSE 1 END ASC,
+        COALESCE(lineage.parentCount, 0) DESC,
         CASE WHEN n.BirthYear > 0 THEN n.BirthYear ELSE 9999 END ASC,
         n.Surname COLLATE NOCASE ASC,
         n.Given COLLATE NOCASE ASC
